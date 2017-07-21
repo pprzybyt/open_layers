@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Custom Controls</title>
+    <link rel="stylesheet" href="https://openlayers.org/en/v4.2.0/css/ol.css" type="text/css">
+    <!-- The line below is only needed for old environments like Internet Explorer and Android 4.x -->
+    <script src="https://cdn.polyfill.io/v2/polyfill.min.js?features=requestAnimationFrame,Element.prototype.classList,URL"></script>
+    <script src="https://openlayers.org/en/v4.2.0/build/ol.js"></script>
+    <script src="https://code.jquery.com/jquery-2.2.3.min.js"></script>
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+
+    <style>
+        #panel{
+            position: absolute;
+            top: 1%;
+            left: 10%;
+        }
+    </style>
+</head>
+<body>
+<div id="map" class="map"></div>
+<div id="panel"><button id="zoomButton" class="btn btn-primary">TEMPERATURE</button></div>
+<script>
+    var map = new ol.Map({
+        layers: [
+            new ol.layer.Tile({
+                source: new ol.source.OSM()
+            })
+        ],
+        target: 'map',
+        view: new ol.View({
+            center: [50, 250],
+            zoom: 2,
+        })
+    });
+
+    $('#zoomButton').click(function () {
+
+        map.getView().setZoom(map.getView().getZoom() + 1);
+    })
+
+  /*  var button = document.createElement('BUTTON');
+    var t = document.createTextNode("ZOOM");
+    button.appendChild(t);
+
+    var handleRotateNorth = function(e) {
+        map.getView().setZoom(2);
+    };
+
+    button.addEventListener('click', handleRotateNorth, false);
+
+    var element = document.createElement('div');
+    element.className = 'rotate-north ol-unselectable ol-control';
+    element.appendChild(button);
+
+    var ZoomControl = new ol.control.Control({
+        element: element
+    });
+
+    map.addControl(ZoomControl);
+*/
+</script>
+</body>
+</html>
