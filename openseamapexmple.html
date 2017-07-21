@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Localized OpenStreetMap</title>
+    <link rel="stylesheet" href="https://openlayers.org/en/v4.2.0/css/ol.css" type="text/css">
+    <!-- The line below is only needed for old environments like Internet Explorer and Android 4.x -->
+    <script src="https://cdn.polyfill.io/v2/polyfill.min.js?features=requestAnimationFrame,Element.prototype.classList,URL"></script>
+    <script src="https://openlayers.org/en/v4.2.0/build/ol.js"></script>
+</head>
+<body>
+<div class="container-fluid">
+
+    <div class="row-fluid">
+        <div class="span12">
+            <div id="map" class="map"></div>
+        </div>
+    </div>
+
+</div>
+<script>
+    // tiles.openseamap.org does not set CORS headers, so we have to disable
+    // crossOrigin and we cannot use WebGL.
+
+    var openCycleMapLayer = new ol.layer.Tile({
+        source: new ol.source.OSM({
+            attributions: [
+                new ol.Attribution({
+                    html: 'All maps &copy; ' +
+                    '<a href="http://www.opencyclemap.org/">OpenCycleMap</a>'
+                }),
+                ol.source.OSM.ATTRIBUTION
+            ],
+            url: 'http://{a-c}.tile.opencyclemap.org/cycle/{z}/{x}/{y}.png?apikey=d3f4e3e03a0447a281d63f18458d010f'
+        })
+    });
+
+    var openSeaMapLayer = new ol.layer.Tile({
+        source: new ol.source.OSM({
+            attributions: [
+                new ol.Attribution({
+                    html: 'All maps &copy; ' +
+                    '<a href="http://www.openseamap.org/">OpenSeaMap</a>'
+                }),
+                ol.source.OSM.ATTRIBUTION
+            ],
+            crossOrigin: null,
+            url: 'http://tiles.openseamap.org/seamark/{z}/{x}/{y}.png'
+        })
+    });
+
+
+    var map = new ol.Map({
+        layers: [
+            openCycleMapLayer,
+            openSeaMapLayer
+        ],
+        target: 'map',
+        controls: ol.control.defaults({
+            attributionOptions: /** @type {olx.control.AttributionOptions} */ ({
+                collapsible: false
+            })
+        }),
+        view: new ol.View({
+            maxZoom: 18,
+            center: [-244780.24508882355, 5986452.183179816],
+            zoom: 15
+        })
+    });
+
+</script>
+</body>
+</html>

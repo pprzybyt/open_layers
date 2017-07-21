@@ -1,0 +1,79 @@
+
+<html>
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <title>OpenSeaMap</title>
+
+
+    <style type="text/css">
+        .olImageLoadError {
+            display: none !important;
+        }
+    </style>
+
+    <script src="http://www.openlayers.org/api/OpenLayers.js"></script>
+    <script src="http://www.openstreetmap.org/openlayers/OpenStreetMap.js"></script>
+    <script type="text/javascript" src="http://map.openseamap.org/map/javascript/harbours.js"></script>
+    <script type="text/javascript" src="http://map.openseamap.org/map/javascript/map_utils.js"></script>
+    <script type="text/javascript" src="http://map.openseamap.org/map/javascript/utilities.js"></script>
+
+</head>
+<body>
+<script type="text/javascript">
+
+    var map;
+    var layer_mapnik;
+    var layer_tah;
+    var layer_seamark;
+    var marker;
+
+    // Position and zoomlevel of the map
+    var lon = 18.5305;
+    var lat = 54.5189;
+
+    var language = 'en';
+
+
+
+    map = new OpenLayers.Map('map', {
+        projection: new OpenLayers.Projection("EPSG:900913"),
+        displayProjection: new OpenLayers.Projection("EPSG:4326"),
+        eventListeners: {
+            "moveend": mapEventMove,
+        },
+        controls: [
+            new OpenLayers.Control.Navigation(),
+            new OpenLayers.Control.ScaleLine({topOutUnits : "nmi", bottomOutUnits: "km", topInUnits: 'nmi', bottomInUnits: 'km', maxWidth: '40'}),
+            new OpenLayers.Control.LayerSwitcher(),
+            new OpenLayers.Control.MousePosition(),
+        ],
+        numZoomLevels: 18,
+        maxResolution: 156543,
+        units: 'meters'
+    });
+
+    // Add Layers to map-------------------------------------------------------------------------------------------------------
+    // Mapnik
+    layer_mapnik = new OpenLayers.Layer.OSM.Mapnik("Mapnik");
+    // Seamark
+    layer_seamark = new OpenLayers.Layer.TMS("SeaMark", "http://tiles.openseamap.org/seamark/", { numZoomLevels: 18, type: 'png', getURL: getTileURL, isBaseLayer: false, displayOutsideMaxExtent: true});
+    // Harbours
+    layer_pois = new OpenLayers.Layer.Vector("Harbour", { projection: new OpenLayers.Projection("EPSG:4326"), visibility: true, displayOutsideMaxExtent:true});
+    layer_pois.setOpacity(0.8);
+
+    map.addLayers([layer_mapnik, layer_seamark, layer_pois]);
+    jumpTo(lon, lat, zoom);
+
+    // Update harbour layer
+    refreshHarbours();
+
+    // Map event listener moved
+    function mapEventMove(event) {
+        // Update harbour layer
+        refreshHarbours();
+    }
+</script>
+
+</body>
+
+</html>

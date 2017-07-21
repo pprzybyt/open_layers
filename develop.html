@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="https://openlayers.org/en/v4.2.0/css/ol.css" type="text/css">
+    <style>
+        .map {
+            height: 500px;
+            width: 100%;
+        }
+    </style>
+    <script src="https://openlayers.org/en/v4.2.0/build/ol.js" type="text/javascript"></script>
+    <script src="http://www.openstreetmap.org/openlayers/OpenStreetMap.js"></script>
+    <script type="text/javascript" src="http://map.openseamap.org/map/javascript/harbours.js"></script>
+    <script type="text/javascript" src="http://map.openseamap.org/map/javascript/map_utils.js"></script>
+    <script type="text/javascript" src="http://map.openseamap.org/map/javascript/utilities.js"></script>
+
+    <title>OpenLayers example</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+</head>
+<body>
+<h2>My Map</h2>
+<div id="map" class="map"></div>
+<div id="mouse-position"></div>
+<span id="status"> &nbsp;</span>
+
+<script type="text/javascript">
+
+    var mousePositionControl = new ol.control.MousePosition({
+        coordinateFormat: ol.coordinate.createStringXY(4),
+        projection: 'EPSG:4326',
+        // comment the following two lines to have the mouse position
+        // be placed within the map.
+        className: 'custom-mouse-position',
+        target: document.getElementById('mouse-position'),
+        undefinedHTML: '&nbsp;'
+    });
+
+    var degrees2meters = function(lon,lat) {
+        var x = lon * 20037508.34 / 180;
+        var y = Math.log(Math.tan((90 + lat) * Math.PI / 360)) / (Math.PI / 180);
+        y = y * 20037508.34 / 180;
+        return [x, y]
+    };
+
+    var baseLayer = new ol.layer.Tile({
+        source: new ol.source.OSM()
+    });
+
+
+    var seamarkLayer = new ol.layer.Tile({
+        source: new ol.source.OSM({
+            attributions: [
+                new ol.Attribution({
+                    html: 'All maps &copy; ' +
+                    '<a href="http://www.openseamap.org/">OpenSeaMap</a>'
+                }),
+                ol.source.OSM.ATTRIBUTION
+            ],
+            crossOrigin: null,
+            url: 'http://tiles.openseamap.org/seamark/{z}/{x}/{y}.png'
+        })
+    });
+
+    var routeCoords = [
+        [18.57,   54.5325],
+        [18.7993, 54.5289],
+        [18.9093, 54.6090],
+        [18.9693, 54.6790],
+        [19.0593, 54.7090],
+        [19.1093, 54.6190],
+        [18.9493, 54.4490],
+        [18.7493, 54.4090],
+    ];
+    points = [0, 0, 0];
+
+    for(var i=0; i < routeCoords.length; i++){
+        points[i] = degrees2meters(routeCoords[i][0], routeCoords[i][1]);
+    }
+    console.log(points[0]);
+
+    var startPoint = new ol.Feature({
+        type: 'icon',
+        geometry: new ol.geom.Point(points[0])
+    });
+
+    var endPoint = new ol.Feature({
+        type: 'icon',
+        geometry: new ol.geom.Point(points[points.length - 1])
+    });
+
+    var ship= new ol.Feature({
+        type: 'ship',
+        geometry: new ol.geom.Point(points[0]),
+        name: "my first ship"
+    });
+
+
+    var lineFeature = new ol.Feature({
+        type: 'line1',
+        geometry: new ol.geom.LineString(points)
+    });
+
+    var line2Feature = new ol.Feature({
+        type: 'line2',
+        geometry: new ol.geom.LineString(points)
+    });
+
+    var styles = {
+        'line1': new ol.style.Style({
+            stroke: new ol.style.Stroke({
+                width: 20,
+                color: [255, 120, 0, 0.5]
+            })
+        }),
+        'line2': new ol.style.Style({
+            stroke: new ol.style.Stroke({
+                width: 5,
+                color: [80, 120, 10, 0.35]
+            })
+        }),
+        'icon': new ol.style.Style({
+            image: new ol.style.Icon({
+                anchor: [0.5, 1],
+                src: 'https://openlayers.org/en/v4.2.0/examples/data/icon.png'
+            })
+        }),
+        'ship': new ol.style.Style({
+            image: new ol.style.Icon({
+                anchor: [0.5, 1],
+                src: 'https://openlayers.org/en/v4.2.0/examples/data/dot.png'
+            })
+        })
+    };
+
+    var vectorLayer = new ol.layer.Vector({
+        source: new ol.source.Vector({
+            features: [lineFeature, line2Feature, ship, endPoint, startPoint]
+        }),
+        style: function(feature) {
+            return styles[feature.get('type')];
+        }
+    });
+
+
+    var view = new ol.View({
+
+        center: degrees2meters(18.6605, 54.5389),
+        zoom: 10,
+        minZoom: 2
+
+    });
+
+    var map = new ol.Map({
+        controls: ol.control.defaults({
+            attributionOptions:({
+                collapsible: false
+            })
+        }).extend([mousePositionControl]),
+        layers: [
+            baseLayer,
+            seamarkLayer,
+            vectorLayer
+
+        ],
+        target: 'map',
+        view: view
+    });
+
+
+    var selectClick = new ol.interaction.Select({
+        condition: ol.events.condition.click
+    });
+
+    map.addInteraction(selectClick);
+
+    selectClick.on('select', function(e) {
+        document.getElementById('status').innerHTML = '&nbsp;' + 'info: ';// + e.selected.getParameter('name');
+    });
+
+    //var selectElement = document.getElementById('type');
+
+
+</script>
+</body>
+</html>

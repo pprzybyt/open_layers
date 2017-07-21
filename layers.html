@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Draw Features</title>
+    <link rel="stylesheet" href="https://openlayers.org/en/v4.2.0/css/ol.css" type="text/css">
+    <!-- The line below is only needed for old environments like Internet Explorer and Android 4.x -->
+    <script src="https://cdn.polyfill.io/v2/polyfill.min.js?features=requestAnimationFrame,Element.prototype.classList,URL"></script>
+    <script src="https://openlayers.org/en/v4.2.0/build/ol.js"></script>
+</head>
+<body>
+<div id="map" class="map"></div>
+<form class="form-inline">
+    <label>Geometry type &nbsp;</label>
+    <select id="type">
+        <option value="Point">Point</option>
+        <option value="LineString">LineString</option>
+        <option value="Polygon">Polygon</option>
+        <option value="Circle">Circle</option>
+        <option value="None">None</option>
+    </select>
+</form>
+<script>
+    var raster = new ol.layer.Tile({
+        source: new ol.source.OSM()
+    });
+
+    var source = new ol.source.Vector({wrapX: false});
+
+    var vector = new ol.layer.Vector({
+        source: source
+    });
+
+    map = new OpenLayers.Map('map', {
+        projection: new OpenLayers.Projection("EPSG:900913"),
+        displayProjection: new OpenLayers.Projection("EPSG:4326"),
+        eventListeners: {
+            "moveend": mapEventMove,
+        },
+        controls: [
+            new OpenLayers.Control.Navigation(),
+            new OpenLayers.Control.ScaleLine({topOutUnits : "nmi", bottomOutUnits: "km", topInUnits: 'nmi', bottomInUnits: 'km', maxWidth: '40'}),
+            new OpenLayers.Control.LayerSwitcher(),
+            new OpenLayers.Control.MousePosition(),
+        ],
+        numZoomLevels: 18,
+        maxResolution: 156543,
+        units: 'meters'
+    });
+
+    // Add Layers to map-------------------------------------------------------------------------------------------------------
+    // Mapnik
+    layer_mapnik = new OpenLayers.Layer.OSM.Mapnik("Mapnik");
+    // Seamark
+    layer_seamark = new OpenLayers.Layer.TMS("SeaMark", "http://tiles.openseamap.org/seamark/", { numZoomLevels: 18, type: 'png', getURL: getTileURL, isBaseLayer: false, displayOutsideMaxExtent: true});
+    // Harbours
+    layer_pois = new OpenLayers.Layer.Vector("Harbour", { projection: new OpenLayers.Projection("EPSG:4326"), visibility: true, displayOutsideMaxExtent:true});
+    layer_pois.setOpacity(0.8);
+
+    map.addLayers([layer_mapnik, layer_seamark, layer_pois]);
+    jumpTo(lon, lat, zoom);
+
+    // Update harbour layer
+    refreshHarbours();
+
+
+    var typeSelect = document.getElementById('type');
+
+    var draw; // global so we can remove it later
+    function addInteraction() {
+        var value = typeSelect.value;
+        if (value !== 'None') {
+            draw = new ol.interaction.Draw({
+                source: source,
+                type: /** @type {ol.geom.GeometryType} */ (typeSelect.value)
+            });
+            map.addInteraction(draw);
+        }
+    }
+
+
+    /**
+     * Handle change event.
+     */
+    typeSelect.onchange = function() {
+        map.removeInteraction(draw);
+        addInteraction();
+    };
+
+    addInteraction();
+</script>
+</body>
+</html>
