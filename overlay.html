@@ -38,13 +38,75 @@
 <div style="display: none;">
     <div id="popup" title="INFO:"></div>
 </div>
-<div id="panel"><button id="zoomButton" class="btn btn-primary">TEMPERATURE</button></div>
+<div id="panel"><button id="tempButton" class="btn btn-primary">TEMPERATURE</button><button id="pressButton" class="btn btn-primary">PRESSURE</button>
+    <button id="windButton" class="btn btn-primary">WIND</button>
+    <button id="precButton" class="btn btn-primary">PRECIPITATION</button></div>
+
 <span id="status"> &nbsp;</span>
+<div id ="tempColorbar" style="; background-image: linear-gradient(to right,
+                rgb(159, 85, 181) 0%,
+                rgb(44, 106, 187) 8.75%,
+                rgb(82, 139, 213) 12.5%,
+                rgb(103, 163, 222) 18.75%,
+                rgb(142, 202, 240) 25%,
+                rgb(155, 213, 244) 31.25%,
+                rgb(172, 225, 253) 37.5%,
+                rgb(194, 234, 255) 43.75%,
+                rgb(255, 255, 208) 50%,
+                rgb(254, 248, 174) 56.25%,
+                rgb(254, 232, 146) 62.5%,
+                rgb(254, 226, 112) 68.75%,
+                rgb(253, 212, 97) 75%,
+                rgb(244, 168, 94) 82.5%,
+                rgb(244, 129, 89) 87.5%,
+                rgb(244, 104, 89) 93.75%,
+                rgb(244, 76, 73) 100%);
+                width: 100%">
+    <div><table width="100%" ><col width="33%">
+        <col width="33%">  <col width="33%"><tr><td><h5>-40 °C</h5> </td><td style="text-align: center;"><h5>0 °C </h5></td><td style="text-align: right;"><h5> 40 °C</h5></td></tr> </table></div>
+</div>
+
+
+<div id="pressColorbar" style="background-image: linear-gradient(to right,
+rgb(0, 115, 255) 0%,
+rgb(0, 170, 255) 8.35059%,
+rgb(75, 208, 214) 24.9192%,
+ rgb(141, 231, 199) 41.4879%,
+ rgb(176, 247, 32) 49.7722%,
+ rgb(240, 184, 0) 58.0565%,
+ rgb(251, 85, 21) 74.6251%,
+ rgb(243, 54, 59) 91.1938%,
+ rgb(198, 0, 0) 100%); width: 100%;">
+    <div><table width="100%" ><col width="33%">
+        <col width="33%">  <col width="33%"><tr><td><h5>949.92 hPa</h5> </td><td style="text-align: center;"><h5>1013.25 hPa </h5></td><td style="text-align: right;"><h5> 1070.63 hPa</h5></td></tr> </table></div>
+</div>
+
+
+
+<div id="windColorbar" style="background-image: linear-gradient(to right,
+rgba(255, 255, 0, 0) 0%,
+rgba(170, 128, 177, 0.44) 1%,
+rgba(170, 128, 177, 0.54) 1.5%,
+rgba(176, 128, 177, 0.71) 3%,
+rgba(170, 128, 177, 0.84) 6%,
+rgb(164, 123, 170) 12.5%,
+rgba(116, 76, 172, 0.9) 25%,
+rgb(158, 128, 177) 50%,
+rgba(48, 6, 53, 0.82) 100%);
+width: 100%;">
+    <div><table width="100%" ><col width="33%">
+        <col width="33%">  <col width="33%"><tr><td><h5>0 m/s</h5> </td><td style="text-align: center;"><h5>100 m/s</h5></td><td style="text-align: right;"><h5> 100 m/s</h5></td></tr> </table></div>
+</div>
 
 <script type="text/javascript">
 
+
+    jQuery('#tempColorbar').toggle('hide');
+    jQuery('#pressColorbar').toggle('hide');
+    jQuery('#windColorbar').toggle('hide');
     window.app = {};
     var app = window.app;
+    var weatherOn = false;
 
     var mousePositionControl = new ol.control.MousePosition({
         coordinateFormat: ol.coordinate.createStringXY(4),
@@ -75,6 +137,9 @@
             url: 'http://tiles.openseamap.org/seamark/{z}/{x}/{y}.png'
         })
     });
+
+
+
 
     var routeCoords = [
         [18.57,   54.5325],
@@ -358,10 +423,66 @@
 
     });
 
-    $('#zoomButton').click(function () {
+    var weatherLayers = [
+        new ol.layer.Tile({
+            source: new ol.source.XYZ({
+                url: 'http://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=9855483cd72e3e1287615d83e5a09324'
+            })
+        }),
+        new ol.layer.Tile({
+            source: new ol.source.XYZ({
+                url: 'http://tile.openweathermap.org/map/pressure_new/{z}/{x}/{y}.png?appid=9855483cd72e3e1287615d83e5a09324'
+            })
+        }),
+        new ol.layer.Tile({
+            source: new ol.source.XYZ({
+                url: 'http://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png?appid=9855483cd72e3e1287615d83e5a09324'
+            })
+        }),
+        new ol.layer.Tile({
+            source: new ol.source.XYZ({
+                url: 'http://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=9855483cd72e3e1287615d83e5a09324'
+            })
+        })
 
-        map.getView().setZoom(map.getView().getZoom() + 1);
-    })
+    ];
+
+
+    $('#tempButton').click(function () {
+        SwitchMap(0);
+    });
+    $('#pressButton').click(function () {
+        SwitchMap(1);
+    });
+    $('#precButton').click(function () {
+        SwitchMap(3);
+    });
+    $('#windButton').click(function () {
+        SwitchMap(2);
+    });
+
+    switchOn = [false, false, false, false];
+    colorbars = ['#tempColorbar', '#pressColorbar', '#windColorbar', null ];
+
+    SwitchMap = function (i){
+        if(switchOn[i]) {
+            map.removeLayer(weatherLayers[i]);
+            jQuery(colorbars[i]).toggle('hide');
+        }else {
+            map.addLayer(weatherLayers[i]);
+            jQuery(colorbars[i]).toggle('show');
+            if(i < 2){ // temp & pressure cant be displayed the same time
+                if(i == 0 && switchOn[1])
+                    SwitchMap(1);
+                else if(i == 1 && switchOn[0])
+                    SwitchMap(0);
+            }
+        }
+
+        switchOn[i] = !switchOn[i];
+    };
+
+
 
 </script>
 </body>
