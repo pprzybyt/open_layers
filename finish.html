@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="https://openlayers.org/en/v4.2.0/css/ol.css" type="text/css">
+    <style>
+        .map {
+            height: 500px;
+            width: 100%;
+        }
+        #panel{
+            position: absolute;
+            top: 1%;
+            left: 10%;
+        }
+        .popover-content {
+            min-width: 220px;
+        }
+    </style>
+
+    <script src="http://www.openstreetmap.org/openlayers/OpenStreetMap.js"></script>
+    <script src="https://openlayers.org/en/v4.2.0/build/ol.js" type="text/javascript"></script>
+    <script src="https://code.jquery.com/jquery-2.2.3.min.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+</head>
+<body>
+<div id="map" class="map"></div>
+<div id="mouse-position"></div>
+<div style="display: none;">
+    <div id="popup" title="INFO:"></div>
+</div>
+<div id="panel"><button id="tempButton" class="btn btn-primary">TEMPERATURE</button><button id="pressButton" class="btn btn-primary">PRESSURE</button>
+    <button id="windButton" class="btn btn-primary">WIND</button>
+    <button id="precButton" class="btn btn-primary">PRECIPITATION</button></div>
+
+<div id ="tempColorbar" style="; background-image: linear-gradient(to right,
+                rgb(159, 85, 181) 0%,
+                rgb(44, 106, 187) 8.75%,
+                rgb(82, 139, 213) 12.5%,
+                rgb(103, 163, 222) 18.75%,
+                rgb(142, 202, 240) 25%,
+                rgb(155, 213, 244) 31.25%,
+                rgb(172, 225, 253) 37.5%,
+                rgb(194, 234, 255) 43.75%,
+                rgb(255, 255, 208) 50%,
+                rgb(254, 248, 174) 56.25%,
+                rgb(254, 232, 146) 62.5%,
+                rgb(254, 226, 112) 68.75%,
+                rgb(253, 212, 97) 75%,
+                rgb(244, 168, 94) 82.5%,
+                rgb(244, 129, 89) 87.5%,
+                rgb(244, 104, 89) 93.75%,
+                rgb(244, 76, 73) 100%);
+                width: 100%">
+    <div><table width="100%" ><col width="33%">
+        <col width="33%">  <col width="33%"><tr><td><h5>-40 °C</h5> </td><td style="text-align: center;"><h5>0 °C </h5></td><td style="text-align: right;"><h5> 40 °C</h5></td></tr> </table></div>
+</div>
+<div id ="pressColorbar" style="background-image: linear-gradient(to right,
+rgb(0, 115, 255) 0%,
+rgb(0, 170, 255) 8.35059%,
+rgb(75, 208, 214) 24.9192%,
+ rgb(141, 231, 199) 41.4879%,
+ rgb(176, 247, 32) 49.7722%,
+ rgb(240, 184, 0) 58.0565%,
+ rgb(251, 85, 21) 74.6251%,
+ rgb(243, 54, 59) 91.1938%,
+ rgb(198, 0, 0) 100%); width: 100%;">
+    <div><table width="100%" ><col width="33%">
+        <col width="33%">  <col width="33%"><tr><td><h5>949.92 hPa</h5> </td><td style="text-align: center;"><h5>1013.25 hPa </h5></td><td style="text-align: right;"><h5> 1070.63 hPa</h5></td></tr> </table></div>
+</div>
+<div id ="windColorbar" style="background-image: linear-gradient(to right,
+rgba(255, 255, 0, 0) 0%,
+rgba(170, 128, 177, 0.44) 1%,
+rgba(170, 128, 177, 0.54) 1.5%,
+rgba(176, 128, 177, 0.71) 3%,
+rgba(170, 128, 177, 0.84) 6%,
+rgb(164, 123, 170) 12.5%,
+rgba(116, 76, 172, 0.9) 25%,
+rgb(158, 128, 177) 50%,
+rgba(48, 6, 53, 0.82) 100%);
+width: 100%;">
+    <div><table width="100%" ><col width="33%">
+        <col width="33%">  <col width="33%"><tr><td><h5>0 m/s</h5> </td><td style="text-align: center;"><h5>100 m/s</h5></td><td style="text-align: right;"><h5> 200 m/s</h5></td></tr> </table></div>
+</div>
+
+<script type="text/javascript">
+
+    jQuery('#tempColorbar').toggle('hide');
+    jQuery('#pressColorbar').toggle('hide');
+    jQuery('#windColorbar').toggle('hide');
+
+    var weatherOn = false;
+
+    var degrees2meters = function(lon,lat) {
+        var x = lon * 20037508.34 / 180;
+        var y = Math.log(Math.tan((90 + lat) * Math.PI / 360)) / (Math.PI / 180);
+        y = y * 20037508.34 / 180;
+        return [x, y]
+    };
+
+    var view = new ol.View({
+
+        center: degrees2meters(3, 55.5389),
+        zoom: 6,
+
+        minZoom: 2
+
+    });
+
+
+
+    var mousePositionControl = new ol.control.MousePosition({
+        coordinateFormat: ol.coordinate.createStringXY(4),
+        projection: 'EPSG:4326',
+        className: 'custom-mouse-position',
+        target: document.getElementById('mouse-position'),
+        undefinedHTML: '&nbsp;'
+    });
+
+
+    var map = new ol.Map({
+        controls: ol.control.defaults({
+            attributionOptions:({
+                collapsible: false
+            })
+        }).extend([mousePositionControl]),
+
+        target: 'map',
+        view: view
+
+    });
+
+    var baseLayer = new ol.layer.Tile({
+        source: new ol.source.OSM()
+    });
+
+    var seamarkLayer = new ol.layer.Tile({
+        source: new ol.source.OSM({
+            crossOrigin: null,
+            url: 'http://tiles.openseamap.org/seamark/{z}/{x}/{y}.png'
+        })
+    });
+
+    var routeCoords = [
+        [8.47, 53.577],
+        [8.25,   53.75325],
+        [7.7993, 53.95289],
+        [7.393, 53.95289],
+        [6.9093, 54.6090],
+        [6.4093, 54.3090],
+        [5.9693, 54.6790],
+        [5.493, 54.3790],
+        [4.4593, 54.5090],
+        [4.0593, 54.7090],
+        [3.4093, 55.6490],
+        [3.1093, 55.6190],
+        [2.9493, 55.4490],
+        [2.6493, 55.7490],
+        [1.9093, 55.6090],
+        [1.3093, 55.6490],
+        [0.9693, 54.6290],
+        [0.493, 54.6790],
+        [-1.0593, 55.7090],
+        [-2.5693, 56.134090],
+        [-2.8693, 56.114090],
+        [-3.0773, 55.9551]
+    ];
+
+    routePoints = [];
+
+    for(var i=0; i < routeCoords.length; i++){
+        routePoints[i] = degrees2meters(routeCoords[i][0], routeCoords[i][1]);
+    }
+
+    var startPoint = new ol.Feature({
+        type: 'home',
+        name: 'home',
+        geometry: new ol.geom.Point(routePoints[0])
+    });
+
+    var endPoint = new ol.Feature({
+        type: 'anchor',
+        name: 'harbour',
+        geometry: new ol.geom.Point(routePoints[routePoints.length - 1])
+    });
+
+    var ship = new ol.Feature({
+        type: 'ship',
+        geometry: new ol.geom.Point(routePoints[routePoints.length - 2]),
+        name: "my first ship"
+    });
+
+    var baseLineFeature = new ol.Feature({
+        type: 'lineB',
+        geometry: new ol.geom.LineString(routePoints.slice(0, routePoints.length - 1))
+    });
+
+    var centerLineFeature = new ol.Feature({
+        type: 'lineC',
+        geometry: new ol.geom.LineString(routePoints.slice(0, routePoints.length - 1))
+    });
+
+    var line0Feature = new ol.Feature({
+        type: 'line0',
+        geometry: new ol.geom.LineString(routePoints.slice(0, routePoints.length/4 ))
+    });
+
+    var line1Feature = new ol.Feature({
+        type: 'line1',
+        geometry: new ol.geom.LineString(routePoints.slice(routePoints.length/4 - 1, routePoints.length/2))
+    });
+
+    var line2Feature = new ol.Feature({
+        type: 'line2',
+        geometry: new ol.geom.LineString(routePoints.slice(routePoints.length/2 - 1, routePoints.length*3/4))
+    });
+
+    var line3Feature = new ol.Feature({
+        type: 'line3',
+        geometry: new ol.geom.LineString(routePoints.slice(routePoints.length*3/4 - 1, routePoints.length - 1))
+    });
+
+    var polygonCoords = [
+        [0.23, 58.76],
+        [-0.81, 57.11],
+        [1.66, 56.48],
+        [4.17, 57.22],
+        [3.18, 58.97]
+    ];
+
+    var polygonPoints = [];
+
+    for(var i=0; i < polygonCoords.length; i++){
+        polygonPoints[i] = degrees2meters(polygonCoords[i][0], polygonCoords[i][1]);
+    }
+
+    var polygon = new ol.Feature({
+        type: 'polygon',
+        geometry: new ol.geom.Polygon([polygonPoints])
+    });
+
+    var pointFeatures = [];
+
+    for(var i = 1; i< routePoints.length - 1; i++){
+        pointFeatures[i - 1] =
+        new ol.Feature({
+            name: 'point' + i.toString(),
+        type: 'point',
+        geometry: new ol.geom.Point(routePoints[i])})
+    }
+
+     styles = {
+        'lineB': new ol.style.Style({
+             stroke: new ol.style.Stroke({
+                 width: 30,
+                 color: [255, 255, 255, 0.3]
+             })
+         }),
+
+         'lineC': new ol.style.Style({
+             stroke: new ol.style.Stroke({
+                 width: 1,
+                 color: [255, 255, 0, 1],
+             })
+         }),
+        'line0': new ol.style.Style({
+             stroke: new ol.style.Stroke({
+                 width: 10,
+                 color: [45, 120, 130, 0.5]
+             })
+         }),
+         'line1': new ol.style.Style({
+            stroke: new ol.style.Stroke({
+                width: 10,
+                color: [135, 250, 50, 0.5]
+            })
+        }),
+         'line2': new ol.style.Style({
+            stroke: new ol.style.Stroke({
+                width: 10,
+                color: [165, 190, 60, 0.5]
+            })
+        }),
+         'line3': new ol.style.Style({
+             stroke: new ol.style.Stroke({
+                 width: 10,
+                 color: [85, 150, 13, 0.5]
+             })
+         }),
+        'home': new ol.style.Style({
+            image: new ol.style.Icon({
+                anchor: [0.5, 1],
+                src: 'icons/home.png'
+            })
+        }),
+         'anchor': new ol.style.Style({
+             image: new ol.style.Icon({
+                 anchor: [0.5, 1],
+                 src: 'icons/anchor.png'
+             })
+         }),
+        'ship': new ol.style.Style({
+            image: new ol.style.Icon({
+                src: 'https://openlayers.org/en/v4.2.0/examples/data/dot.png'
+            })
+        }),
+        'point': new ol.style.Style({
+                image: new ol.style.Circle({
+                    radius: 6,
+                    fill: new ol.style.Fill({color: [50, 50, 50, 0.2]}),
+                    stroke: new ol.style.Stroke({color: '#bada55', width: 1})
+                })
+            })
+    };
+
+    var source = new ol.source.Vector({});
+
+    //source.addFeature(ship);
+    //source.addFeature(centerLineFeature);
+    source.addFeatures(pointFeatures);
+
+    var pointLayer = new ol.layer.Vector({
+        source: source,
+        style: function(feature) {
+            var style = styles[feature.get('type')];
+            style.setText(new ol.style.Text({
+                text: feature.get("name"),
+                font: "10px Arial",
+                offsetX: 20,
+                offsetY: -20
+            }));
+            return style;
+        },
+        zIndex: 2
+    });
+
+
+    var vectorLayer = new ol.layer.Vector({
+        source: new ol.source.Vector({features: [baseLineFeature, line0Feature, line1Feature, line2Feature, line3Feature, endPoint, startPoint]}),
+        style: function(feature) {
+            return styles[feature.get('type')];
+        },
+        zIndex: 1
+    });
+
+
+    function styleFunction() {
+        return [
+            new ol.style.Style({
+                fill: new ol.style.Fill({
+                    color: 'rgba(255,0,0,0.4)'
+                }),
+                stroke: new ol.style.Stroke({
+                    color: 'red',
+                }),
+                text: new ol.style.Text({
+                    font: map.getView().getZoom() * 3 + 'px Calibri,sans-serif',
+                    fill: new ol.style.Fill({ color: 'red' }),
+                    text: map.getView().getZoom() > 3 ? "RESTRICTED AREA" : ''
+                })
+            })
+        ];
+    }
+
+    polygon.setStyle(styleFunction());
+
+
+    var polygonLayer = new ol.layer.Vector({
+        source: new ol.source.Vector({features: [polygon]}),
+        zIndex: 1
+    });
+
+    map.on('moveend', function () {
+        polygon.setStyle(styleFunction());
+    });
+
+
+    var polygonLayer = new ol.layer.Vector({
+        source: new ol.source.Vector({features: [polygon]}),
+        zIndex: 1
+    });
+
+    var vectorLayer2 = new ol.layer.Vector({
+        source: new ol.source.Vector({features: [centerLineFeature]}),
+        style: function(feature) {
+            return styles[feature.get('type')];
+        },
+        zIndex: 2
+    });
+
+    var shipLayer = new ol.layer.Vector({
+        source: new ol.source.Vector({features: [ship]}),
+        style: function(feature) {
+            return styles[feature.get('type')];
+        },
+        zIndex: 3
+    });
+
+
+    map.addLayer(baseLayer);
+    map.addLayer(seamarkLayer);
+    map.addLayer(vectorLayer);
+    map.addLayer(vectorLayer2);
+    map.addLayer(pointLayer);
+    map.addLayer(shipLayer);
+    map.addLayer(polygonLayer);
+
+
+    var point = null;
+    var line = null;
+    var closestPoint = null;
+
+    var displaySnap = function(coordinate) {
+        var closestFeature = source.getClosestFeatureToCoordinate(coordinate);
+        if (closestFeature === null) {
+            point = null;
+            line = null;
+        } else {
+            var geometry = closestFeature.getGeometry();
+            if(geometry.getType() === 'Point'){
+                closestPoint = geometry.getClosestPoint(coordinate);
+                if (point === null) {
+                    point = new ol.geom.Point(closestPoint);
+                } else {
+                    point.setCoordinates(closestPoint);
+                }}
+                if (line === null) {
+                    line = new ol.geom.LineString([coordinate, closestPoint]);
+                } else {
+                    line.setCoordinates([coordinate, closestPoint]);
+                }
+            }
+
+        map.render();
+    };
+
+    map.on('pointermove', function(evt) {
+        if (evt.dragging) {
+            return;
+        }
+        var coordinate = map.getEventCoordinate(evt.originalEvent);
+        displaySnap(coordinate);
+
+    });
+
+
+
+    var stroke = new ol.style.Stroke({
+        color: 'rgba(0,0,0,0.5)',
+        width: 3
+    });
+    var style = new ol.style.Style({
+        stroke: stroke,
+        image: new ol.style.Circle({
+            radius: 10,
+            stroke: stroke
+        })
+    });
+
+    map.on('postcompose', function(evt) {
+        var vectorContext = evt.vectorContext;
+        vectorContext.setStyle(style);
+        if (point !== null) {
+            vectorContext.drawGeometry(point);
+        }
+        if (line !== null) {
+            vectorContext.drawGeometry(line);
+        }
+    });
+
+    var popup = new ol.Overlay({
+        element: document.getElementById('popup')
+    });
+    map.addOverlay(popup);
+
+    map.on('click', function(e) {
+        var element = popup.getElement();
+        var coordinate = e.coordinate;
+        var hdms = ol.coordinate.toStringHDMS(ol.proj.transform(
+            coordinate, 'EPSG:3857', 'EPSG:4326'));
+        var feature = map.forEachFeatureAtPixel(e.pixel, function (feature) {
+            return feature
+        });
+        if(feature){
+            if(feature.getGeometry().getType() == "Point"){
+                var coordinates = feature.getGeometry().getCoordinates();
+                var name = feature.get('name');
+                console.log(feature.get('name'));
+                console.log('Coords:  ' + coordinates.toString());
+                $(element).popover('destroy');
+                popup.setPosition(coordinate);
+                $(element).popover({
+                    'placement': 'top',
+                    'animation': false,
+                    'html': true,
+                    'content': '<p>Name: ' + name + '</p><code>' + hdms + '</code>'
+                });
+                $(element).popover('show');
+            }}
+            else
+                $(element).popover('hide');
+
+
+    });
+
+    map.on('moveend', function () {
+        polygon.setStyle(styleFunction());
+    });
+
+
+    var weatherLayers = [
+        new ol.layer.Tile({
+            source: new ol.source.XYZ({
+                url: 'http://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=9855483cd72e3e1287615d83e5a09324'
+            })
+        }),
+        new ol.layer.Tile({
+            source: new ol.source.XYZ({
+                url: 'http://tile.openweathermap.org/map/pressure_new/{z}/{x}/{y}.png?appid=9855483cd72e3e1287615d83e5a09324'
+            })
+        }),
+        new ol.layer.Tile({
+            source: new ol.source.XYZ({
+                url: 'http://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png?appid=9855483cd72e3e1287615d83e5a09324'
+            })
+        }),
+        new ol.layer.Tile({
+            source: new ol.source.XYZ({
+                url: 'http://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=9855483cd72e3e1287615d83e5a09324'
+            })
+        })
+
+    ];
+
+    $('#tempButton').click(function () {
+        SwitchMap(0);
+    });
+    $('#pressButton').click(function () {
+        SwitchMap(1);
+    });
+    $('#precButton').click(function () {
+        SwitchMap(3);
+    });
+    $('#windButton').click(function () {
+        SwitchMap(2);
+    });
+
+    switchOn = [false, false, false, false];
+    colorbars = ['#tempColorbar', '#pressColorbar', '#windColorbar', null ];
+
+    SwitchMap = function (i){
+        if(switchOn[i]) {
+            map.removeLayer(weatherLayers[i]);
+            jQuery(colorbars[i]).toggle('hide');
+        }else {
+            map.addLayer(weatherLayers[i]);
+            jQuery(colorbars[i]).toggle('show');
+            if(i < 2){ // temp & pressure cant be displayed the same time
+                if(i == 0 && switchOn[1])
+                    SwitchMap(1);
+                else if(i == 1 && switchOn[0])
+                    SwitchMap(0);
+            }
+        }
+
+        switchOn[i] = !switchOn[i];
+    };
+
+    var selectClick = new ol.interaction.Select({
+        condition: ol.events.condition.selectSingleClick
+    });
+
+    map.addInteraction(selectClick);
+
+    selectClick.on('select', function(e) {
+        console.log("clicked");
+    });
+
+
+</script>
+</body>
+</html>
